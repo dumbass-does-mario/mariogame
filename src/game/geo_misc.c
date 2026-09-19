@@ -3,12 +3,12 @@
 #include "sm64.h"
 #include "geo_misc.h"
 
+#include "actors/vanilla_actors/castle_inside/header.h"
+#include "actors/vanilla_actors/rr/header.h"
 #include "area.h"
 #include "engine/math_util.h"
 #include "level_update.h"
-#include "levels/castle_inside/header.h"
 #include "levels/ending/header.h"
-#include "levels/rr/header.h"
 #include "mario.h"
 #include "mario_actions_cutscene.h"
 #include "memory.h"
@@ -165,30 +165,8 @@ Gfx *geo_exec_cake_end_screen(s32 callContext, struct GraphNode *node, UNUSED Ma
         displayListHead = displayList;
 
         SET_GRAPH_NODE_LAYER(generatedNode->fnNode.node.flags, LAYER_OPAQUE);
-#if MULTILANG
-        gSPDisplayList(displayListHead++, dl_cake_end_screen);
-#else
         gSPDisplayList(displayListHead++, dl_proj_mtx_fullscreen);
-#endif
-#if MULTILANG
-#ifdef EU_CUSTOM_CAKE_FIX
-    gSPDisplayList(displayListHead++, dl_cake_end_screen_eu_fix);
-#else
-    switch (eu_get_language()) {
-            case LANGUAGE_ENGLISH:
-                gSPDisplayList(displayListHead++, dl_cake_end_screen_eu_english);
-                break;
-            case LANGUAGE_FRENCH:
-                gSPDisplayList(displayListHead++, dl_cake_end_screen_eu_french );
-                break;
-            case LANGUAGE_GERMAN:
-                gSPDisplayList(displayListHead++, dl_cake_end_screen_eu_german );
-                break;
-        }
-#endif
-#else
         gSPDisplayList(displayListHead++, dl_cake_end_screen);
-#endif
         gSPEndDisplayList(displayListHead);
     }
 

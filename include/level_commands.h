@@ -64,7 +64,7 @@ enum LevelCommands {
     /*0x36*/ LEVEL_CMD_SET_MUSIC,
     /*0x37*/ LEVEL_CMD_SET_MENU_MUSIC,
     /*0x38*/ LEVEL_CMD_FADEOUT_MUSIC,
-    /*0x39*/ LEVEL_CMD_SET_MACRO_OBJECTS,
+    /*0x39*/ LEVEL_CMD_39,
     /*0x3A*/ LEVEL_CMD_3A,
     /*0x3B*/ LEVEL_CMD_CREATE_WHIRLPOOL,
     /*0x3C*/ LEVEL_CMD_GET_OR_SET_VAR,
@@ -449,9 +449,14 @@ enum GoddardScene {
 #define SET_ECHO(console, emulator) \
     CMD_BBBB(LEVEL_CMD_SET_ECHO, 0x04, console, emulator)
 
+// Required for backwards compatibility with Fast64
 #define MACRO_OBJECTS(objList) \
-    CMD_BBH(LEVEL_CMD_SET_MACRO_OBJECTS, 0x08, 0x0000), \
-    CMD_PTR(objList)
+    CMD_BBH(LEVEL_CMD_NOP, 0x04, 0x0000)
+
+// unused (previously MACRO_OBJECTS)
+#define CMD39(unk4) \
+    CMD_BBH(LEVEL_CMD_39, 0x08, 0x0000), \
+    CMD_PTR(unk4)
 
 // unused
 #define CMD3A(unk2, unk4, unk6, unk8, unk10) \
@@ -474,6 +479,11 @@ enum GoddardScene {
 
 #define LOAD_TEXTURE_BIN(textureBin) \
     LOAD_YAY0_TEXTURE(/*seg*/ SEGMENT_TEXTURE, /*romStart*/ _##textureBin##_yay0SegmentRomStart, /*romEnd*/ _##textureBin##_yay0SegmentRomEnd)
+
+#define LOAD_VANILLA_OBJECTS(s, objectBin, textureBin) \
+    LOAD_YAY0_TEXTURE(/*seg*/ SEGMENT_TEXTURE, _##textureBin##_yay0SegmentRomStart, _##textureBin##_yay0SegmentRomEnd), \
+    LOAD_YAY0(        /*seg*/ SEGMENT_VANILLA_OBJECTS, _vo_##objectBin##_yay0SegmentRomStart,  _vo_##objectBin##_yay0SegmentRomEnd), \
+    LOAD_RAW(         /*seg*/ SEGMENT_VANILLA_GEO, _vo_##objectBin##_geoSegmentRomStart,  _vo_##objectBin##_geoSegmentRomEnd)
 
 #define LOAD_SKYBOX(skybox) \
     LOAD_YAY0(/*seg*/ SEGMENT_SKYBOX, /*romStart*/ _##skybox##_skybox_yay0SegmentRomStart, /*romEnd*/ _##skybox##_skybox_yay0SegmentRomEnd)

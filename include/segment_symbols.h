@@ -16,6 +16,12 @@
     DECLARE_SEGMENT(name##_geo) \
     DECLARE_NOLOAD(name##_geo)
 
+#define DECLARE_VANILLA_ACTOR_SEGMENT(name) \
+    DECLARE_SEGMENT(vo_##name##_mio0) \
+    DECLARE_SEGMENT(vo_##name##_yay0) \
+    DECLARE_SEGMENT(vo_##name##_geo) \
+    DECLARE_NOLOAD(vo_##name##_geo)
+
 #define DECLARE_LEVEL_SEGMENT(name) \
     DECLARE_SEGMENT(name) \
     DECLARE_NOLOAD(name) \
@@ -41,6 +47,28 @@ DECLARE_ACTOR_SEGMENT(group14)
 DECLARE_ACTOR_SEGMENT(group15)
 DECLARE_ACTOR_SEGMENT(group16)
 DECLARE_ACTOR_SEGMENT(group17)
+
+DECLARE_VANILLA_ACTOR_SEGMENT(bob)
+DECLARE_VANILLA_ACTOR_SEGMENT(wf)
+DECLARE_VANILLA_ACTOR_SEGMENT(jrb)
+DECLARE_VANILLA_ACTOR_SEGMENT(ccm)
+DECLARE_VANILLA_ACTOR_SEGMENT(bbh)
+DECLARE_VANILLA_ACTOR_SEGMENT(hmc)
+DECLARE_VANILLA_ACTOR_SEGMENT(lll)
+DECLARE_VANILLA_ACTOR_SEGMENT(ssl)
+DECLARE_VANILLA_ACTOR_SEGMENT(ddd)
+DECLARE_VANILLA_ACTOR_SEGMENT(sl)
+DECLARE_VANILLA_ACTOR_SEGMENT(wdw)
+DECLARE_VANILLA_ACTOR_SEGMENT(ttm)
+DECLARE_VANILLA_ACTOR_SEGMENT(thi)
+DECLARE_VANILLA_ACTOR_SEGMENT(ttc)
+DECLARE_VANILLA_ACTOR_SEGMENT(rr)
+DECLARE_VANILLA_ACTOR_SEGMENT(bitdw)
+DECLARE_VANILLA_ACTOR_SEGMENT(bitfs)
+DECLARE_VANILLA_ACTOR_SEGMENT(bits)
+DECLARE_VANILLA_ACTOR_SEGMENT(vcutm)
+DECLARE_VANILLA_ACTOR_SEGMENT(castle_inside)
+DECLARE_VANILLA_ACTOR_SEGMENT(castle_grounds)
 
 DECLARE_SEGMENT(entry)
 DECLARE_SEGMENT(engine)
@@ -81,17 +109,6 @@ DECLARE_LEVEL_SEGMENT(ending)
 
 DECLARE_SEGMENT(segment2_yay0)
 
-DECLARE_SEGMENT(water_skybox_yay0)
-DECLARE_SEGMENT(ccm_skybox_yay0)
-DECLARE_SEGMENT(clouds_skybox_yay0)
-DECLARE_SEGMENT(bitfs_skybox_yay0)
-DECLARE_SEGMENT(wdw_skybox_yay0)
-DECLARE_SEGMENT(cloud_floor_skybox_yay0)
-DECLARE_SEGMENT(ssl_skybox_yay0)
-DECLARE_SEGMENT(bbh_skybox_yay0)
-DECLARE_SEGMENT(bidw_skybox_yay0)
-DECLARE_SEGMENT(bits_skybox_yay0)
-
 DECLARE_SEGMENT(fire_yay0)
 DECLARE_SEGMENT(spooky_yay0)
 DECLARE_SEGMENT(generic_yay0)
@@ -109,25 +126,8 @@ DECLARE_SEGMENT(title_screen_bg_yay0)
 
 DECLARE_SEGMENT(debug_level_select_yay0)
 
-#ifdef VERSION_EU
-DECLARE_SEGMENT(translation_de_yay0)
-DECLARE_SEGMENT(translation_en_yay0)
-DECLARE_SEGMENT(translation_fr_yay0)
-#endif
-
 //added for compatibility
 DECLARE_SEGMENT(segment2_mio0)
-
-DECLARE_SEGMENT(water_skybox_mio0)
-DECLARE_SEGMENT(ccm_skybox_mio0)
-DECLARE_SEGMENT(clouds_skybox_mio0)
-DECLARE_SEGMENT(bitfs_skybox_mio0)
-DECLARE_SEGMENT(wdw_skybox_mio0)
-DECLARE_SEGMENT(cloud_floor_skybox_mio0)
-DECLARE_SEGMENT(ssl_skybox_mio0)
-DECLARE_SEGMENT(bbh_skybox_mio0)
-DECLARE_SEGMENT(bidw_skybox_mio0)
-DECLARE_SEGMENT(bits_skybox_mio0)
 
 DECLARE_SEGMENT(fire_mio0)
 DECLARE_SEGMENT(spooky_mio0)
@@ -146,10 +146,31 @@ DECLARE_SEGMENT(title_screen_bg_mio0)
 
 DECLARE_SEGMENT(debug_level_select_mio0)
 
-#ifdef VERSION_EU
-DECLARE_SEGMENT(translation_de_mio0)
+// skyboxes
+
+#define SKYBOX_SYMBOLS_ROM
+#include "skyboxes.h"
+#undef SKYBOX_SYMBOLS_ROM
+
+#ifdef MULTILANG
+DECLARE_SEGMENT(translation_en_yay0)
 DECLARE_SEGMENT(translation_en_mio0)
+#ifdef ENABLE_FRENCH
+DECLARE_SEGMENT(translation_fr_yay0)
 DECLARE_SEGMENT(translation_fr_mio0)
+#endif
+#ifdef ENABLE_GERMAN
+DECLARE_SEGMENT(translation_de_yay0)
+DECLARE_SEGMENT(translation_de_mio0)
+#endif
+#ifdef ENABLE_JAPANESE
+DECLARE_SEGMENT(translation_jp_yay0)
+DECLARE_SEGMENT(translation_jp_mio0)
+#endif
+#ifdef ENABLE_SPANISH
+DECLARE_SEGMENT(translation_es_yay0)
+DECLARE_SEGMENT(translation_es_mio0)
+#endif
 #endif
 
 #endif

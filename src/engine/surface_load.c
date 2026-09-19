@@ -8,7 +8,6 @@
 #include "debugger/assert.h"
 #include "game/memory.h"
 #include "game/object_helpers.h"
-#include "game/macro_special_objects.h"
 #include "surface_collision.h"
 #include "math_util.h"
 #include "game/mario.h"
@@ -39,13 +38,11 @@ u8 sClearAllCells;
  * The static surface pool is resized to be exactly the amount of memory needed for the level geometry.
  * The dynamic surface pool is set at a fixed length and cleared every frame.
  */
-void *gCurrStaticSurfacePool;
 void *gDynamicSurfacePool;
 
 /**
  * The end of the data currently allocated to the surface pools.
  */
-void *gCurrStaticSurfacePoolEnd;
 void *gDynamicSurfacePoolEnd;
 
 /**
@@ -57,12 +54,17 @@ u32 gTotalStaticSurfaceData;
  * Allocate the part of the surface node pool to contain a surface node.
  */
 static struct SurfaceNode *alloc_surface_node(u32 dynamic) {
-    struct SurfaceNode **poolEnd = (struct SurfaceNode **)(dynamic ? &gDynamicSurfacePoolEnd : &gCurrStaticSurfacePoolEnd);
+    struct SurfaceNode *node;
+    if (dynamic) {
+        struct SurfaceNode **poolEnd = (struct SurfaceNode**) &gDynamicSurfacePoolEnd;
+        node = *poolEnd;
+        (*poolEnd)++;
+    } else {
+        node = main_pool_alloc(sizeof(struct SurfaceNode));
+        gTotalStaticSurfaceData += sizeof(struct SurfaceNode);
+    }
 
-    struct SurfaceNode *node = *poolEnd;
-    (*poolEnd)++;
     gSurfaceNodesAllocated++;
-
     node->next = NULL;
 
     return node;
@@ -73,10 +75,16 @@ static struct SurfaceNode *alloc_surface_node(u32 dynamic) {
  * initialize the surface.
  */
 static struct Surface *alloc_surface(u32 dynamic) {
-    struct Surface **poolEnd = (struct Surface **)(dynamic ? &gDynamicSurfacePoolEnd : &gCurrStaticSurfacePoolEnd);
-    
-    struct Surface *surface = *poolEnd;
-    (*poolEnd)++;
+    struct Surface *surface;
+    if (dynamic) {
+        struct Surface **poolEnd = (struct Surface**) &gDynamicSurfacePoolEnd;
+        surface = *poolEnd;
+        (*poolEnd)++;
+    } else {
+        surface = main_pool_alloc(sizeof(struct Surface));
+        gTotalStaticSurfaceData += sizeof(struct Surface);
+    }
+
     gSurfacesAllocated++;
 
     surface->type = SURFACE_DEFAULT;
@@ -250,7 +258,7 @@ static struct Surface *read_surface_data(TerrainData *vertexData, TerrainData **
 
     f32 mag = (sqr(n[0]) + sqr(n[1]) + sqr(n[2]));
     // This will never need to be run for custom levels because Fast64 does this step before exporting.
-    // assert(mag >= NEAR_ZERO, "Denorm tri was found.");
+    // assertf(mag >= NEAR_ZERO, "Denorm tri was found.");
 #ifdef ENABLE_VANILLA_LEVEL_SPECIFIC_CHECKS
     if (mag < NEAR_ZERO) {
         return NULL;
@@ -407,7 +415,7 @@ static void load_environmental_regions(TerrainData **data) {
  * Allocate the dynamic surface pool for object collision.
  */
 void alloc_surface_pools(void) {
-    gDynamicSurfacePool = main_pool_alloc(DYNAMIC_SURFACE_POOL_SIZE, MEMORY_POOL_LEFT);
+    gDynamicSurfacePool = main_pool_alloc(DYNAMIC_SURFACE_POOL_SIZE);
     gDynamicSurfacePoolEnd = gDynamicSurfacePool;
 
     gCCMEnteredSlide = FALSE;
@@ -436,10 +444,6 @@ u32 get_area_terrain_size(TerrainData *data) {
             case TERRAIN_LOAD_VERTICES:
                 numVertices = *data++;
                 data += 3 * numVertices;
-                break;
-
-            case TERRAIN_LOAD_OBJECTS:
-                data += get_special_objects_size(data);
                 break;
 
             case TERRAIN_LOAD_ENVIRONMENT:
@@ -475,11 +479,10 @@ u32 get_area_terrain_size(TerrainData *data) {
  * Process the level file, loading in vertices, surfaces, some objects, and environmental
  * boxes (water, gas, JRB fog).
  */
-void load_area_terrain(s32 index, TerrainData *data, RoomData *surfaceRooms, s16 *macroObjects) {
+void load_area_terrain(TerrainData *data, RoomData *surfaceRooms) {
     PUPPYPRINT_GET_SNAPSHOT();
     s32 terrainLoadType;
     TerrainData *vertexData = NULL;
-    u32 surfacePoolData;
 
     // Initialize the data for this.
     gEnvironmentRegions = NULL;
@@ -493,10 +496,6 @@ void load_area_terrain(s32 index, TerrainData *data, RoomData *surfaceRooms, s16
     bzero(gStaticSurfacePartition, sizeof(gStaticSurfacePartition));
     gTotalStaticSurfaceData = 0;
 
-    // Initialise a new surface pool for this block of static surface data
-    gCurrStaticSurfacePool = main_pool_alloc(main_pool_available() - 0x10, MEMORY_POOL_LEFT);
-    gCurrStaticSurfacePoolEnd = gCurrStaticSurfacePool;
-
     // A while loop iterating through each section of the level data. Sections of data
     // are prefixed by a terrain "type." This type is reused for surfaces as the surface
     // type.
@@ -507,8 +506,6 @@ void load_area_terrain(s32 index, TerrainData *data, RoomData *surfaceRooms, s16
             load_static_surfaces(&data, vertexData, terrainLoadType, &surfaceRooms);
         } else if (terrainLoadType == TERRAIN_LOAD_VERTICES) {
             vertexData = read_vertex_data(&data);
-        } else if (terrainLoadType == TERRAIN_LOAD_OBJECTS) {
-            spawn_special_objects(index, &data);
         } else if (terrainLoadType == TERRAIN_LOAD_ENVIRONMENT) {
             load_environmental_regions(&data);
         } else if (terrainLoadType == TERRAIN_LOAD_CONTINUE) {
@@ -520,22 +517,6 @@ void load_area_terrain(s32 index, TerrainData *data, RoomData *surfaceRooms, s16
             continue;
         }
     }
-
-    if (macroObjects != NULL && *macroObjects != -1) {
-        // If the first macro object presetID is within the range [0, 29].
-        // Generally an early spawning method, every object is in BBH (the first level).
-        if (0 <= *macroObjects && *macroObjects < 30) {
-            spawn_macro_objects_hardcoded(index, macroObjects);
-        }
-        // A more general version that can spawn more objects.
-        else {
-            spawn_macro_objects(index, macroObjects);
-        }
-    }
-
-    surfacePoolData = (uintptr_t)gCurrStaticSurfacePoolEnd - (uintptr_t)gCurrStaticSurfacePool;
-    gTotalStaticSurfaceData += surfacePoolData;
-    main_pool_realloc(gCurrStaticSurfacePool, surfacePoolData);
 
     gNumStaticSurfaceNodes = gSurfaceNodesAllocated;
     gNumStaticSurfaces = gSurfacesAllocated;
@@ -737,11 +718,8 @@ void load_object_collision_model(void) {
 void load_object_static_model(void) {
     PUPPYPRINT_GET_SNAPSHOT();
     TerrainData *collisionData = o->collisionData;
-    u32 surfacePoolData;
 
     // Initialise a new surface pool for this block of surface data
-    gCurrStaticSurfacePool = main_pool_alloc(main_pool_available() - 0x10, MEMORY_POOL_LEFT);
-    gCurrStaticSurfacePoolEnd = gCurrStaticSurfacePool;
     gSurfaceNodesAllocated = gNumStaticSurfaceNodes;
     gSurfacesAllocated = gNumStaticSurfaces;
 
@@ -752,10 +730,6 @@ void load_object_static_model(void) {
     while (*collisionData != TERRAIN_LOAD_CONTINUE) {
         load_object_surfaces(&collisionData, sVertexData, FALSE);
     }
-
-    surfacePoolData = (uintptr_t)gCurrStaticSurfacePoolEnd - (uintptr_t)gCurrStaticSurfacePool;
-    gTotalStaticSurfaceData += surfacePoolData;
-    main_pool_realloc(gCurrStaticSurfacePool, surfacePoolData);
 
     gNumStaticSurfaceNodes = gSurfaceNodesAllocated;
     gNumStaticSurfaces = gSurfacesAllocated;
